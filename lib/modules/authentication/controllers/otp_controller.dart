@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../views/password_view.dart';
 
 class OtpController extends GetxController {
   final List<TextEditingController> otpControllers =
@@ -79,33 +80,28 @@ class OtpController extends GetxController {
   }
 
   void verifyOtp() {
-    if (enteredOtp.length != 4) {
-      Get.snackbar(
-        'Invalid OTP',
-        'Please enter all 4 digits.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
+    if (enteredOtp == '1234') {
+  Get.snackbar(
+    'Success',
+    'Mobile number verified successfully!',
+    snackPosition: SnackPosition.BOTTOM,
+  );
 
-    if (enteredOtp != '1234') {
-      Get.snackbar(
-        'Verification failed',
-        'Incorrect OTP. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+  Get.to(
+    () => const PasswordView(),
+    transition: Transition.rightToLeft,
+  );
 
-      clearOtp();
-      return;
-    }
+  return;
+}
 
-    Get.snackbar(
-      'Success',
-      'Mobile number verified successfully!',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+Get.snackbar(
+  'Verification failed',
+  'Incorrect OTP. Please try again.',
+  snackPosition: SnackPosition.BOTTOM,
+);
 
-    // Create Password screen will be connected in Stage 5.
+clearOtp();
   }
 
   @override
