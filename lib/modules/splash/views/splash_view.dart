@@ -1,5 +1,8 @@
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../authentication/views/signup_view.dart';
 
@@ -21,6 +24,7 @@ class _SplashViewState extends State<SplashView> {
       Get.off(
         () => const SignupView(),
         transition: Transition.fadeIn,
+        duration: const Duration(milliseconds: 500),
       );
     });
   }
@@ -30,33 +34,10 @@ class _SplashViewState extends State<SplashView> {
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.bolt,
-                color: AppColors.action,
-                size: 65,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'CreditSea',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -1,
-              ),
-            ),
-          ],
+        child: SvgPicture.asset(
+          'assets/images/Creditsea_logo.svg',
+          width: 190,
+          fit: BoxFit.contain,
         ),
       ),
     );

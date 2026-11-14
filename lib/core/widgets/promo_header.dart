@@ -1,6 +1,9 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
 import '../theme/app_colors.dart';
 
 class PromoHeader extends StatefulWidget {
@@ -13,26 +16,28 @@ class PromoHeader extends StatefulWidget {
 class _PromoHeaderState extends State<PromoHeader> {
   final PageController _pageController = PageController();
   Timer? _autoScrollTimer;
+
   int currentPage = 0;
 
   static const Duration _autoScrollInterval = Duration(seconds: 3);
-  static const Duration _animationDuration = Duration(milliseconds: 500);
+  static const Duration _animationDuration =
+      Duration(milliseconds: 500);
 
-  final List<Map<String, dynamic>> slides = [
+  final List<Map<String, String>> slides = [
     {
       'title': 'Flexible Loan Options',
       'subtitle': 'Loan types to cater to different financial needs',
-      'icon': Icons.directions_car_outlined,
+      'image': 'assets/images/promo-1.svg',
     },
     {
       'title': 'Instant Loan Approval',
       'subtitle': 'Users will receive approval within minutes',
-      'icon': Icons.description_outlined,
+      'image': 'assets/images/promo-2.svg',
     },
     {
       'title': '24×7 Customer Care',
       'subtitle': 'Dedicated customer support team',
-      'icon': Icons.support_agent,
+      'image': 'assets/images/promo-3.svg',
     },
   ];
 
@@ -44,8 +49,9 @@ class _PromoHeaderState extends State<PromoHeader> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
+
     _autoScrollTimer = Timer.periodic(_autoScrollInterval, (_) {
-      if (!_pageController.hasClients) return;
+      if (!mounted || !_pageController.hasClients) return;
 
       final nextPage = (currentPage + 1) % slides.length;
 
@@ -59,11 +65,12 @@ class _PromoHeaderState extends State<PromoHeader> {
 
   void _stopAutoScroll() {
     _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
   }
 
   @override
   void dispose() {
-    _autoScrollTimer?.cancel();
+    _stopAutoScroll();
     _pageController.dispose();
     super.dispose();
   }
@@ -76,30 +83,15 @@ class _PromoHeaderState extends State<PromoHeader> {
         children: [
           const SizedBox(height: 24),
 
-          // CreditSea logo placeholder
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.bolt,
-                color: AppColors.accent,
-                size: 35,
-              ),
-              SizedBox(width: 5),
-              Text(
-                'CreditSea',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 25,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
+          // CreditSea logo
+          SvgPicture.asset(
+            'assets/images/logo-2.svg',
+            width: 190,
+            height: 45,
+            fit: BoxFit.contain,
           ),
 
           Expanded(
-            // Pause auto-scroll while the user is touching/dragging,
-            // resume when they let go.
             child: Listener(
               onPointerDown: (_) => _stopAutoScroll(),
               onPointerUp: (_) => _startAutoScroll(),
@@ -118,34 +110,39 @@ class _PromoHeaderState extends State<PromoHeader> {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 130,
+                      SizedBox(
+                        width: 150,
                         height: 130,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          slide['icon'] as IconData,
-                          size: 65,
-                          color: Colors.white,
+                        child: SvgPicture.asset(
+                          slide['image']!,
+                          fit: BoxFit.contain,
                         ),
                       ),
+
                       const SizedBox(height: 15),
+
                       Text(
-                        slide['title'] as String,
+                        slide['title']!,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 5),
-                      Text(
-                        slide['subtitle'] as String,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                        ),
+                        child: Text(
+                          slide['subtitle']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                     ],
@@ -166,7 +163,9 @@ class _PromoHeaderState extends State<PromoHeader> {
                 width: currentPage == index ? 18 : 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: currentPage == index ? Colors.white : Colors.white54,
+                  color: currentPage == index
+                      ? Colors.white
+                      : Colors.white54,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
