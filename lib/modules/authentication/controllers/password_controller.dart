@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../views/form_view.dart';
 
 class PasswordController extends GetxController {
   final passwordController = TextEditingController();
@@ -47,16 +48,15 @@ class PasswordController extends GetxController {
   }
 
   void createPassword() {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-
-    Get.snackbar(
-      'Success',
-      'Password created successfully!',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  if (!formKey.currentState!.validate()) {
+    return;
   }
+
+  Get.to(
+    () => const FormView(),
+    transition: Transition.rightToLeft,
+  );
+}
 
   @override
   void onClose() {
