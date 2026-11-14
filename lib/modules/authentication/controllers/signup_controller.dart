@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get.dart';
 import '../views/otp_view.dart';
+import '../views/signin_view.dart';
 
 class SignupController extends GetxController {
   final phoneController = TextEditingController();
@@ -17,6 +18,8 @@ class SignupController extends GetxController {
   if (!formKey.currentState!.validate()) {
     return;
   }
+
+  
 
   if (!acceptedTerms.value) {
     Get.snackbar(
@@ -34,6 +37,13 @@ class SignupController extends GetxController {
     arguments: {
       'phone': phone,
     },
+    transition: Transition.rightToLeft,
+  );
+}
+
+void goToSignin() {
+  Get.off(
+    () => const SigninView(),
     transition: Transition.rightToLeft,
   );
 }

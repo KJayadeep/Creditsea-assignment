@@ -210,12 +210,7 @@ class SignupView extends StatelessWidget {
                       // Sign in navigation placeholder
                       Center(
                         child: TextButton(
-                          onPressed: () {
-                            Get.snackbar(
-                              'Sign In',
-                              'Sign-in screen will be implemented next.',
-                            );
-                          },
+                          onPressed: controller.goToSignin,
                           child: const Text(
                             'Existing User? Sign in',
                             style: TextStyle(
