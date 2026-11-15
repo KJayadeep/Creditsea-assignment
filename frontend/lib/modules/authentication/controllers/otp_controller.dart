@@ -2,9 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
+
+import '../../../data/repositories/auth_repository.dart';
 import '../views/password_view.dart';
 
 class OtpController extends GetxController {
+  final AuthRepository _authRepository = AuthRepository();
+
   final List<TextEditingController> otpControllers =
       List.generate(4, (_) => TextEditingController());
 
@@ -14,6 +19,7 @@ class OtpController extends GetxController {
   final RxInt remainingSeconds = 30.obs;
   final RxBool canResend = false.obs;
   final RxBool isVerifying = false.obs;
+  final RxBool isResending = false.obs;
 
   Timer? _timer;
 
@@ -58,17 +64,42 @@ class OtpController extends GetxController {
     }
   }
 
-  void resendOtp() {
-    if (!canResend.value) return;
+  // Resend OTP through backend
+  Future<void> resendOtp() async {
+    if (!canResend.value || isResending.value) return;
 
-    clearOtp();
-    startTimer();
+    try {
+      isResending.value = true;
 
-    Get.snackbar(
-      'OTP sent',
-      'Your demo OTP is 1234',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+      await _authRepository.sendOTP(phoneNumber);
+
+      clearOtp();
+      startTimer();
+
+      Get.snackbar(
+        'OTP sent',
+        'A new OTP has been generated.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (error) {
+      String message = 'Unable to resend OTP.';
+
+      if (error is dio.DioException) {
+        final data = error.response?.data;
+
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+
+      Get.snackbar(
+        'Resend failed',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isResending.value = false;
+    }
   }
 
   void clearOtp() {
@@ -79,29 +110,62 @@ class OtpController extends GetxController {
     focusNodes[0].requestFocus();
   }
 
-  void verifyOtp() {
-    if (enteredOtp == '1234') {
-  Get.snackbar(
-    'Success',
-    'Mobile number verified successfully!',
-    snackPosition: SnackPosition.BOTTOM,
-  );
+  // Verify OTP through backend
+  Future<void> verifyOtp() async {
+    if (isVerifying.value) return;
 
-  Get.to(
-    () => const PasswordView(),
-    transition: Transition.rightToLeft,
-  );
+    if (enteredOtp.length != 4) {
+      Get.snackbar(
+        'Invalid OTP',
+        'Please enter all 4 digits.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
 
-  return;
-}
+    try {
+      isVerifying.value = true;
 
-Get.snackbar(
-  'Verification failed',
-  'Incorrect OTP. Please try again.',
-  snackPosition: SnackPosition.BOTTOM,
-);
+      final response = await _authRepository.verifyOTP(
+        phone: phoneNumber,
+        otp: enteredOtp,
+      );
 
-clearOtp();
+      Get.snackbar(
+        'Success',
+        response.data['message'] ??
+            'Mobile number verified successfully!',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      Get.to(
+        () => const PasswordView(),
+        arguments: {
+          'phone': phoneNumber,
+        },
+        transition: Transition.rightToLeft,
+      );
+    } catch (error) {
+      String message = 'OTP verification failed.';
+
+      if (error is dio.DioException) {
+          final data = error.response?.data;
+
+          if (data is Map && data['message'] != null) {
+            message = data['message'].toString();
+          }
+      }
+
+      Get.snackbar(
+        'Verification failed',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      clearOtp();
+    } finally {
+      isVerifying.value = false;
+    }
   }
 
   @override

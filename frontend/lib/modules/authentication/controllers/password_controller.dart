@@ -1,5 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
+
+import '../../../data/repositories/auth_repository.dart';
 import '../views/form_view.dart';
 
 class PasswordController extends GetxController {
@@ -8,8 +12,11 @@ class PasswordController extends GetxController {
 
   final formKey = GlobalKey<FormState>();
 
+  final AuthRepository _authRepository = AuthRepository();
+
   final RxBool hidePassword = true.obs;
   final RxBool hideConfirmPassword = true.obs;
+  final RxBool isLoading = false.obs;
 
   void togglePasswordVisibility() {
     hidePassword.toggle();
@@ -47,16 +54,53 @@ class PasswordController extends GetxController {
     return null;
   }
 
-  void createPassword() {
-  if (!formKey.currentState!.validate()) {
-    return;
-  }
+  Future<void> createPassword() async {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
 
-  Get.to(
-    () => const FormView(),
-    transition: Transition.rightToLeft,
-  );
-}
+    if (isLoading.value) return;
+
+    try {
+      isLoading.value = true;
+
+      final response = await _authRepository.register(
+        password: passwordController.text,
+      );
+
+      Get.snackbar(
+        'Success',
+        response.data['message'] ?? 'Account created successfully',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      // Navigate to personal details
+      Get.to(
+        () => const FormView(),
+        transition: Transition.rightToLeft,
+      );
+
+    } catch (error) {
+      String message = 'Registration failed. Please try again.';
+
+      if (error is dio.DioException) {
+        final data = error.response?.data;
+
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+
+      Get.snackbar(
+        'Registration failed',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   @override
   void onClose() {
