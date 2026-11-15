@@ -30,7 +30,7 @@ class RegistrationProgress extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(steps.length, (index) {
           final stepNumber = index + 1;
-          final isActive = stepNumber <= activeStep;
+          final isActive = stepNumber == activeStep; // only current step is blue
 
           return Row(
             mainAxisSize: MainAxisSize.min,
