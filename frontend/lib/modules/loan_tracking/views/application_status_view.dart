@@ -1,15 +1,20 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
+import '../../../core/components/app_header.dart';
 import '../../../core/widgets/registration_progress.dart';
 import '../controllers/application_status_controller.dart';
+import 'widgets/status_step_card.dart';
 
 class ApplicationStatusView extends StatelessWidget {
   ApplicationStatusView({super.key});
 
   final ApplicationStatusController controller =
-      Get.put(ApplicationStatusController());
+      Get.isRegistered<ApplicationStatusController>()
+          ? (Get.find<ApplicationStatusController>()
+            ..loadLoanArguments(Get.arguments))
+          : Get.put(ApplicationStatusController());
 
   static const Color blue = Color(0xFF087AFF);
   static const Color green = Color(0xFF00A36C);
@@ -51,40 +56,37 @@ class ApplicationStatusView extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Page heading
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () => Get.back(),
-                                  child: const Icon(
-                                    Icons.arrow_back,
-                                    size: 25,
-                                    color: darkText,
-                                  ),
+                            // Page heading with Dashboard quick action
+                            AppHeader(
+                              title: 'Application Status',
+                              fontSize: 24,
+                              onBack: () =>
+                                  Get.offAllNamed(AppRoutes.dashboard),
+                              trailing: IconButton(
+                                tooltip: 'Go to Dashboard',
+                                icon: const Icon(
+                                  Icons.home_outlined,
+                                  color: blue,
+                                  size: 24,
                                 ),
-                                const SizedBox(width: 22),
-                                const Text(
-                                  'Application Status',
-                                  style: TextStyle(
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.w600,
-                                    color: darkText,
-                                  ),
-                                ),
-                              ],
+                                onPressed: () =>
+                                    Get.offAllNamed(AppRoutes.dashboard),
+                              ),
                             ),
 
                             const SizedBox(height: 8),
 
-                            Text(
-                              'Loan application no. #${controller.applicationNumber}',
-                              style: const TextStyle(
-                                fontSize: 17,
-                                color: darkText,
+                            Obx(
+                              () => Text(
+                                'Loan application no. #${controller.applicationNumber.value}',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  color: darkText,
+                                ),
                               ),
                             ),
 
-                            const SizedBox(height: 34),
+                            const SizedBox(height: 28),
 
                             // Application status timeline
                             Obx(
@@ -105,11 +107,25 @@ class ApplicationStatusView extends StatelessWidget {
 
                                     return Column(
                                       children: [
-                                        _statusCard(
+                                        StatusStepCard(
                                           title: controller.statuses[index],
                                           color: statusColor,
                                           isCompleted: isCompleted,
                                           isCurrent: isCurrent,
+                                          onTap: () {
+                                            if (index == 1 &&
+                                                controller.currentStatus.value == 1) {
+                                              controller.continueFromReview();
+                                            } else if (index == 2) {
+                                              controller.openAadhaarVerification(context);
+                                            } else if (index == 3) {
+                                              controller.openENachSetup(context);
+                                            } else if (index == 4) {
+                                              controller.openESignAgreement(context);
+                                            } else if (index == 5) {
+                                              controller.openDisbursement(context);
+                                            }
+                                          },
                                         ),
 
                                         if (index !=
@@ -129,7 +145,350 @@ class ApplicationStatusView extends StatelessWidget {
                               ),
                             ),
 
-                            const SizedBox(height: 40),
+                            // 1. Review countdown banner (when in Step 1)
+                            Obx(() {
+                              if (controller.currentStatus.value == 1) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0F7FF),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFCCE4FF),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.timer_outlined,
+                                            color: blue,
+                                            size: 22,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          const Expanded(
+                                            child: Text(
+                                              'Review in Progress',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: blue,
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: blue,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              controller.formattedReviewTime,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: (120 -
+                                                  controller
+                                                      .reviewRemainingSeconds
+                                                      .value) /
+                                              120,
+                                          backgroundColor:
+                                              const Color(0xFFD6E9FF),
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<Color>(
+                                            blue,
+                                          ),
+                                          minHeight: 6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+
+                            // 2. E-KYC interactive banner (when in Step 2)
+                            Obx(() {
+                              if (controller.currentStatus.value == 2) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F8F3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFB5EAD7),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () => controller
+                                        .openAadhaarVerification(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.fingerprint,
+                                          color: green,
+                                          size: 28,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Tap here to verify Aadhaar e-KYC',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0D5E42),
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Instant paperless identity verification',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF1B8A62),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 14,
+                                          color: green,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+
+                            // 3. E-Nach interactive banner (when in Step 3)
+                            Obx(() {
+                              if (controller.currentStatus.value == 3) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0F7FF),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFCCE4FF),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        controller.openENachSetup(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.account_balance,
+                                          color: blue,
+                                          size: 26,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Set Up Auto-Debit on Due Date',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: blue,
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Powered by Razorpay e-Mandate / UPI AutoPay',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF5582AA),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 14,
+                                          color: blue,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+
+                            // 4. E-Sign interactive banner (when in Step 4)
+                            Obx(() {
+                              if (controller.currentStatus.value == 4) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDF6E2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFFBE2A4),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        controller.openESignAgreement(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.draw_outlined,
+                                          color: Color(0xFFB28100),
+                                          size: 26,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'E-Sign Loan Agreement Consent',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF7A5800),
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Review contract terms and provide digital consent',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF946F00),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 14,
+                                          color: Color(0xFFB28100),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+
+                            // 5. Disbursement interactive banner (when in Step 5)
+                            Obx(() {
+                              if (controller.currentStatus.value == 5) {
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 24),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F8F3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFB5EAD7),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        controller.openDisbursement(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.payments_outlined,
+                                          color: green,
+                                          size: 26,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Ready for Instant Disbursement',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0D5E42),
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Tap to credit funds directly to your bank account',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF1B8A62),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 14,
+                                          color: green,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+
+                            const SizedBox(height: 32),
 
                             // Current status illustration
                             Center(
@@ -139,7 +498,9 @@ class ApplicationStatusView extends StatelessWidget {
                                     controller.currentStatus.value,
                                   ),
                                   size: 62,
-                                  color: blue,
+                                  color: controller.currentStatus.value >= 5
+                                      ? green
+                                      : blue,
                                 ),
                               ),
                             ),
@@ -182,39 +543,118 @@ class ApplicationStatusView extends StatelessWidget {
                       ),
                     ),
 
-                    // Bottom Continue button
+                    // Bottom Action Buttons
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
-                        33, 12, 33, 77,
+                        25, 12, 25, 24,
                       ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 66,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Get.snackbar(
-                              'Application Status',
-                              'Your application is currently under review.',
-                              snackPosition: SnackPosition.BOTTOM,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Obx(() {
+                            if (controller.isRejected) {
+                              return const SizedBox.shrink();
+                            }
+
+                            String buttonText = 'Continue';
+                            IconData buttonIcon = Icons.arrow_forward;
+                            Color buttonColor = blue;
+
+                            if (controller.isRepaid) {
+                              buttonText = 'Apply for a New Loan';
+                              buttonIcon = Icons.add_circle_outline;
+                              buttonColor = green;
+                            } else if (controller.currentStatus.value == 1) {
+                              buttonText =
+                                  'Continue (Skip Wait ${controller.formattedReviewTime})';
+                              buttonIcon = Icons.fast_forward;
+                            } else if (controller.currentStatus.value == 2) {
+                              buttonText = 'Complete E-KYC (Aadhaar)';
+                              buttonIcon = Icons.fingerprint;
+                              buttonColor = blue;
+                            } else if (controller.currentStatus.value == 3) {
+                              buttonText = 'Set Up Auto-Debit (E-Nach)';
+                              buttonIcon = Icons.account_balance;
+                              buttonColor = blue;
+                            } else if (controller.currentStatus.value == 4) {
+                              buttonText = 'Review & E-Sign Agreement';
+                              buttonIcon = Icons.draw;
+                              buttonColor = blue;
+                            } else if (controller.currentStatus.value == 5) {
+                              buttonText = 'Instant Loan Disbursement';
+                              buttonIcon = Icons.payments;
+                              buttonColor = green;
+                            } else {
+                              buttonText = 'Proceed to Loan Repayment';
+                              buttonIcon = Icons.check_circle_outline;
+                              buttonColor = green;
+                            }
+
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => controller
+                                        .handlePrimaryAction(context),
+                                    icon: Icon(buttonIcon, size: 20),
+                                    label: Text(
+                                      buttonText,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: buttonColor,
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      shadowColor:
+                                          buttonColor.withValues(alpha: 0.3),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(9),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
                             );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: blue,
-                            foregroundColor: Colors.white,
-                            elevation: 4,
-                            shadowColor: blue.withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9),
+                          }),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Get.offAllNamed(AppRoutes.dashboard);
+                              },
+                              icon: const Icon(
+                                Icons.dashboard_outlined,
+                                size: 19,
+                              ),
+                              label: const Text(
+                                'Go to Dashboard',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: blue,
+                                side: const BorderSide(
+                                  color: blue,
+                                  width: 1.4,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                              ),
                             ),
                           ),
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
@@ -227,67 +667,25 @@ class ApplicationStatusView extends StatelessWidget {
     );
   }
 
-Widget _statusCard({
-  required String title,
-  required Color color,
-  required bool isCompleted,
-  required bool isCurrent,
-}) {
-  return Container(
-    width: double.infinity,
-    height: 46,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(
-        color: color,
-        width: 1.8,
-      ),
-      borderRadius: BorderRadius.circular(7),
-    ),
-    child: Row(
-      children: [
-        const SizedBox(width: 16),
-
-        Icon(
-          isCompleted
-              ? Icons.assignment_turned_in_outlined
-              : Icons.assignment_outlined,
-          color: color,
-          size: 23,
-        ),
-
-        Expanded(
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 30),
-      ],
-    ),
-  );
-}
-
   IconData _statusIcon(int status) {
+    if (controller.isRepaid) {
+      return Icons.verified;
+    }
     switch (status) {
       case 0:
         return Icons.assignment_turned_in_outlined;
       case 1:
-        return Icons.credit_card_outlined;
+        return Icons.timer_outlined;
       case 2:
-        return Icons.verified_user_outlined;
+        return Icons.fingerprint;
       case 3:
         return Icons.account_balance_outlined;
       case 4:
         return Icons.draw_outlined;
       case 5:
         return Icons.payments_outlined;
+      case 6:
+        return Icons.check_circle_outline;
       default:
         return Icons.assignment_outlined;
     }
