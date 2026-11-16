@@ -1,11 +1,12 @@
-
 import 'package:dio/dio.dart';
-import 'package:dio/browser.dart';
+import 'package:flutter/foundation.dart';
+
+import 'browser_adapter_stub.dart'
+    if (dart.library.js_interop) 'browser_adapter_web.dart'
+    if (dart.library.html) 'browser_adapter_web.dart';
 
 class ApiClient {
-  static final BrowserHttpClientAdapter _browserAdapter =
-      BrowserHttpClientAdapter()
-        ..withCredentials = true;
+  static String? authToken;
 
   static final Dio dio = Dio(
     BaseOptions(
@@ -18,9 +19,24 @@ class ApiClient {
         'Accept': 'application/json',
       },
     ),
-  )..httpClientAdapter = _browserAdapter;
+  );
 
   static void initialize() {
+    if (kIsWeb) {
+      configureBrowserAdapter(dio);
+    }
+
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (authToken != null && authToken!.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $authToken';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
+
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,

@@ -110,12 +110,16 @@ class _PromoHeaderState extends State<PromoHeader> {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
-                        width: 150,
-                        height: 130,
-                        child: SvgPicture.asset(
-                          slide['image']!,
-                          fit: BoxFit.contain,
+                      Flexible(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 150,
+                            maxHeight: 130,
+                          ),
+                          child: SvgPicture.asset(
+                            slide['image']!,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
 
