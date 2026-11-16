@@ -1,59 +1,101 @@
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 
+import '../../../core/components/primary_button.dart';
 import '../../../core/widgets/registration_progress.dart';
+import '../../../data/repositories/loan_repository.dart';
+import '../../loan_calculator/views/loan_calculator_view.dart';
 import '../../loan_tracking/views/application_status_view.dart';
 
-class LoanOfferView extends StatelessWidget {
-  LoanOfferView({super.key});
+class LoanOfferView extends StatefulWidget {
+  const LoanOfferView({super.key});
 
+  @override
+  State<LoanOfferView> createState() => _LoanOfferViewState();
+}
+
+class _LoanOfferViewState extends State<LoanOfferView> {
   static const Color blue = Color(0xFF087AFF);
   static const Color darkText = Color(0xFF383838);
 
-  final Map arguments = Get.arguments is Map ? Get.arguments as Map : {};
+  final Map arguments =
+      Get.arguments is Map ? Get.arguments as Map : {};
 
-  String get amount =>
-      _currency((arguments['principal'] as num?)?.toDouble() ?? 10000);
+  final LoanRepository _loanRepository = LoanRepository();
 
-  String get tenure => '${(arguments['tenure'] as num?)?.toInt() ?? 90}';
+  bool isLoading = false;
 
-  String get payable =>
-      _currency((arguments['totalPayable'] as num?)?.toDouble() ?? 10600);
+  double get principal =>
+      (arguments['principalAmount'] as num?)?.toDouble() ?? 0;
+
+  int get tenure =>
+      (arguments['tenure'] as num?)?.toInt() ?? 0;
+
+  String get purpose =>
+      arguments['purpose']?.toString() ?? '';
+
+  double get totalPayable =>
+      (arguments['totalPayable'] as num?)?.toDouble() ?? 0;
+
+  String get amount => _currency(principal);
+
+  String get payable => _currency(totalPayable);
 
   static String _currency(double value) {
-    final formatted = value.round().toString();
-    final buffer = StringBuffer();
-
-    for (int i = 0; i < formatted.length; i++) {
-      buffer.write(formatted[i]);
-      final remaining = formatted.length - i - 1;
-      if (remaining > 0) {
-        if (remaining == 3 || (remaining > 3 && (remaining - 3) % 2 == 0)) {
-          buffer.write(',');
-        }
-      }
-    }
-
-    return 'Rs. ${buffer.toString()}';
+    return '₹${value.round()}';
   }
 
-  void acceptOffer() {
-    Get.snackbar(
-      'Offer Accepted',
-      'Your loan offer has been accepted.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-    Get.to(
+  Future<void> acceptOffer() async {
+    if (isLoading) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await _loanRepository.acceptOffer(
+        principalAmount: principal,
+        tenure: tenure,
+        purpose: purpose,
+      );
+
+      final loan = response.data['loan'];
+
+      Get.off(
         () => ApplicationStatusView(),
-    );
+        arguments: loan,
+      );
+
+    } on DioException catch (error) {
+      final data = error.response?.data;
+
+      Get.snackbar(
+        'Error',
+        data is Map
+            ? data['message']?.toString() ?? 'Unable to accept offer'
+            : 'Unable to accept offer',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (error) {
+      debugPrint('Accept offer error: $error');
+
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   void extendOffer() {
-    Get.snackbar(
-      'Offer Extension',
-      'Offer extension will be available in the next stage.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    if (Navigator.canPop(context)) {
+      Get.back();
+    } else {
+      Get.off(() => LoanCalculatorView());
+    }
   }
 
   @override
@@ -82,13 +124,12 @@ class LoanOfferView extends StatelessWidget {
 
                   const Spacer(flex: 3),
 
-                  // Coin illustration
                   Image.asset(
                     'assets/images/coin.gif',
                     width: 200,
                     height: 200,
                     fit: BoxFit.contain,
-                ),
+                  ),
 
                   const Spacer(flex: 3),
 
@@ -110,11 +151,17 @@ class LoanOfferView extends StatelessWidget {
                           const TextSpan(text: 'We can offer you '),
                           TextSpan(text: amount, style: bold),
                           const TextSpan(text: ' Amount Within '),
-                          const TextSpan(text: '30 minutes', style: bold),
+                          const TextSpan(
+                            text: '30 minutes',
+                            style: bold,
+                          ),
                           TextSpan(
-                              text: ' for $tenure days, with a payable amount of '),
+                            text: ' for $tenure days, with a payable amount of ',
+                          ),
                           TextSpan(text: payable, style: bold),
-                          const TextSpan(text: '. Just with few more steps.'),
+                          const TextSpan(
+                            text: '. Just with few more steps.',
+                          ),
                         ],
                       ),
                     ),
@@ -137,48 +184,25 @@ class LoanOfferView extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                     child: Column(
                       children: [
+                        PrimaryButton(
+                          text: 'Accept Offer',
+                          height: 48,
+                          isLoading: isLoading,
+                          onPressed: acceptOffer,
+                        ),
+                        const SizedBox(height: 14),
                         SizedBox(
                           width: double.infinity,
                           height: 48,
-                          child: ElevatedButton(
-                            onPressed: acceptOffer,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: blue,
-                              foregroundColor: Colors.white,
-                              elevation: 6,
-                              shadowColor: blue.withValues(alpha: 0.4),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            child: const Text(
-                              'Accept Offer',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            boxShadow: [
-                              BoxShadow(
-                                color: blue.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
                           child: OutlinedButton(
-                            onPressed: extendOffer,
+                            onPressed: isLoading ? null : extendOffer,
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: darkText,
-                              side: const BorderSide(color: blue, width: 1.5),
+                              side: const BorderSide(
+                                color: blue,
+                                width: 1.5,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),

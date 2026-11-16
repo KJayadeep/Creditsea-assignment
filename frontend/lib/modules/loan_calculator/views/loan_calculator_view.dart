@@ -1,16 +1,22 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
+import '../../../core/components/app_header.dart';
+import '../../../core/components/primary_button.dart';
 import '../controllers/loan_calculator_controller.dart';
-import '../../loan_application/views/loan_offer_view.dart';
+import 'widgets/loan_purpose_dropdown.dart';
+import 'widgets/loan_slider.dart';
+import 'widgets/repayment_summary_card.dart';
 
 class LoanCalculatorView extends StatelessWidget {
   LoanCalculatorView({super.key});
 
   final LoanCalculatorController controller =
-      Get.put(LoanCalculatorController());
+      Get.isRegistered<LoanCalculatorController>()
+          ? Get.find<LoanCalculatorController>()
+          : Get.put(LoanCalculatorController());
 
   static const Color blue = Color(0xFF087AFF);
   static const Color darkText = Color(0xFF383838);
@@ -22,28 +28,26 @@ class LoanCalculatorView extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // CreditSea logo
+            // Top Logo
             SizedBox(
-              height: 82,
+              height: 75,
               child: Center(
                 child: SvgPicture.asset(
                   'assets/images/logo-3.svg',
-                  width: 160,
-                  height: 45,
+                  width: 155,
+                  height: 42,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
 
-            // Main loan calculator panel
+            // Calculator Card
             Expanded(
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(25),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                   boxShadow: [
                     BoxShadow(
                       color: Color(0x10000000),
@@ -56,37 +60,17 @@ class LoanCalculatorView extends StatelessWidget {
                   children: [
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(
-                          16, 15, 16, 12,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Heading
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () => Get.back(),
-                                  child: const Icon(
-                                    Icons.arrow_back,
-                                    size: 21,
-                                    color: darkText,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Apply for loan',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: darkText,
-                                  ),
-                                ),
-                              ],
+                            AppHeader(
+                              title: 'Apply for loan',
+                              fontSize: 16,
+                              onBack: () =>
+                                  Get.offAllNamed(AppRoutes.dashboard),
                             ),
-
-                            const SizedBox(height: 5),
-
+                            const SizedBox(height: 6),
                             const Text(
                               "We've calculated your loan eligibility. Select "
                               'your preferred loan amount and tenure.',
@@ -96,269 +80,86 @@ class LoanCalculatorView extends StatelessWidget {
                                 color: darkText,
                               ),
                             ),
-
                             const SizedBox(height: 14),
 
-                            // Interest and processing fee
+                            // Interest & Fee Chips
                             Row(
                               children: [
                                 Expanded(
-                                  child: _infoChip(
-                                    'Interest Per Day 1%',
-                                  ),
+                                  child: _infoChip('Interest Per Day 1%'),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: _infoChip(
-                                    'Processing Fee 10%',
-                                  ),
+                                  child: _infoChip('Processing Fee 10%'),
                                 ),
                               ],
                             ),
-
-                            const SizedBox(height: 17),
+                            const SizedBox(height: 16),
                             const Divider(color: Color(0xFFEEEEEE)),
-                            const SizedBox(height: 15),
+                            const SizedBox(height: 14),
 
-                            // Loan purpose
-                            const Text(
-                              'Purpose of Loan*',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: darkText,
-                              ),
-                            ),
-
-                            const SizedBox(height: 9),
-
+                            // Purpose Selector
                             Obx(
-                              () => Container(
-                                height: 36,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: const Color(0xFFEAEAEA),
-                                  ),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: controller
-                                            .selectedPurpose.value.isEmpty
-                                        ? null
-                                        : controller.selectedPurpose.value,
-                                    isExpanded: true,
-                                    hint: const Text(
-                                      'Select purpose of loan',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.keyboard_arrow_down,
-                                      size: 18,
-                                    ),
-                                    items: controller.loanPurposes.map(
-                                      (purpose) {
-                                        return DropdownMenuItem<String>(
-                                          value: purpose,
-                                          child: Text(
-                                            purpose,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ).toList(),
-                                    onChanged: (value) {
-                                      controller.selectedPurpose.value =
-                                          value ?? '';
-                                    },
-                                  ),
-                                ),
+                              () => LoanPurposeDropdown(
+                                selectedValue: controller.selectedPurpose.value,
+                                purposes: controller.loanPurposes,
+                                onChanged: (val) =>
+                                    controller.selectedPurpose.value = val ?? '',
                               ),
                             ),
-
                             const SizedBox(height: 18),
 
-                            // Principal amount
+                            // Principal Amount Slider
                             Obx(
-                              () => Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        'Principal Amount',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: darkText,
-                                        ),
-                                      ),
-                                      _valueBox(
-                                        controller.formatCurrency(
-                                          controller.principalAmount.value,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 5,
-                                      thumbShape:
-                                          const RectangularSliderThumb(
-                                        width: 3,
-                                        height: 22,
-                                      ),
-                                      overlayShape:
-                                          SliderComponentShape.noOverlay,
-                                      activeTrackColor: blue,
-                                      inactiveTrackColor:
-                                          const Color(0xFFE6F0FF),
-                                      thumbColor: blue,
-                                    ),
-                                    child: Slider(
-                                      min: 5000,
-                                      max: 100000,
-                                      divisions: 95,
-                                      value: controller.principalAmount.value,
-                                      onChanged:
-                                          controller.updatePrincipal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 4),
-
-                            // Tenure
-                            Obx(
-                              () => Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        'Tenure',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: darkText,
-                                        ),
-                                      ),
-                                      _valueBox(
-                                        '${controller.tenure.value.toInt()} Days',
-                                      ),
-                                    ],
-                                  ),
-
-                                  SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 5,
-                                      thumbShape:
-                                          const RectangularSliderThumb(
-                                        width: 3,
-                                        height: 22,
-                                      ),
-                                      overlayShape:
-                                          SliderComponentShape.noOverlay,
-                                      activeTrackColor: blue,
-                                      inactiveTrackColor:
-                                          const Color(0xFFE6F0FF),
-                                      thumbColor: blue,
-                                    ),
-                                    child: Slider(
-                                      min: 20,
-                                      max: 45,
-                                      divisions: 25,
-                                      value: controller.tenure.value,
-                                      onChanged: controller.updateTenure,
-                                    ),
-                                  ),
-
-                                  const Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '20 Days',
-                                        style: TextStyle(fontSize: 8),
-                                      ),
-                                      Text(
-                                        '45 Days',
-                                        style: TextStyle(fontSize: 8),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 25),
-
-                            // Repayment summary
-                            Obx(
-                              () => Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(11),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: blue,
-                                    width: 1,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x08000000),
-                                      blurRadius: 5,
-                                    ),
-                                  ],
+                              () => LoanSlider(
+                                title: 'Principal Amount',
+                                valueDisplay: controller.formatCurrency(
+                                  controller.principalAmount.value,
                                 ),
-                                child: Column(
-                                  children: [
-                                    _summaryRow(
-                                      'Principal Amount',
-                                      controller.formatCurrency(
-                                        controller.principalAmount.value,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 9),
-                                    _summaryRow(
-                                      'Interest',
-                                      controller.formatCurrency(
-                                        controller.interest,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 9),
-                                    _summaryRow(
-                                      'Processing Fee',
-                                      controller.formatCurrency(
-                                        controller.processingFee,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 9),
-                                    _summaryRow(
-                                      'Total Payable',
-                                      controller.formatCurrency(
-                                        controller.totalPayable,
-                                      ),
-                                    ),
-                                  ],
+                                value: controller.principalAmount.value,
+                                min: 5000,
+                                max: 100000,
+                                divisions: 95,
+                                onChanged: controller.updatePrincipal,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Tenure Slider
+                            Obx(
+                              () => LoanSlider(
+                                title: 'Tenure',
+                                valueDisplay:
+                                    '${controller.tenure.value.toInt()} Days',
+                                value: controller.tenure.value,
+                                min: 20,
+                                max: 45,
+                                divisions: 25,
+                                minLabel: '20 Days',
+                                maxLabel: '45 Days',
+                                onChanged: controller.updateTenure,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+
+                            // Summary Breakdown
+                            Obx(
+                              () => RepaymentSummaryCard(
+                                principal: controller.formatCurrency(
+                                  controller.principalAmount.value,
+                                ),
+                                interest: controller.formatCurrency(
+                                  controller.interest,
+                                ),
+                                processingFee: controller.formatCurrency(
+                                  controller.processingFee,
+                                ),
+                                totalPayable: controller.formatCurrency(
+                                  controller.totalPayable,
                                 ),
                               ),
                             ),
-
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
 
                             const Center(
                               child: Text(
@@ -378,50 +179,34 @@ class LoanCalculatorView extends StatelessWidget {
                       ),
                     ),
 
-                    // Bottom actions
+                    // Bottom Action Buttons
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        16, 5, 16, 16,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                       child: Column(
                         children: [
-                          SizedBox(
-                            width: double.infinity,
-                            height: 42,
-                            child: ElevatedButton(
-                              onPressed: controller.applyForLoan,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: blue,
-                                foregroundColor: Colors.white,
-                                elevation: 3,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                              child: const Text(
-                                'Apply',
-                                style: TextStyle(fontSize: 11),
-                              ),
-                            ),
+                          PrimaryButton(
+                            text: 'Apply',
+                            height: 44,
+                            fontSize: 13,
+                            onPressed: controller.applyForLoan,
                           ),
-
-                          const SizedBox(height: 9),
-
+                          const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
-                            height: 35,
+                            height: 38,
                             child: OutlinedButton(
-                              onPressed: () => Get.back(),
+                              onPressed: () =>
+                                  Get.offAllNamed(AppRoutes.dashboard),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: darkText,
                                 side: const BorderSide(color: blue),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                               ),
                               child: const Text(
                                 'Cancel',
-                                style: TextStyle(fontSize: 10),
+                                style: TextStyle(fontSize: 11),
                               ),
                             ),
                           ),
@@ -440,110 +225,23 @@ class LoanCalculatorView extends StatelessWidget {
 
   Widget _infoChip(String text) {
     return Container(
-      height: 30,
+      height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
+        color: const Color(0xFFF3F8FE),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFF72B7F7),
-          style: BorderStyle.solid,
         ),
       ),
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 9,
-          color: darkText,
+          fontSize: 9.5,
+          color: Color(0xFF008FBB),
+          fontWeight: FontWeight.w600,
         ),
       ),
-    );
-  }
-
-  Widget _valueBox(String value) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 68),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFEAEAEA)),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        value,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 10,
-          color: darkText,
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: darkText,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Color(0xFF087AFF),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// Rectangular slider thumb similar to the Figma design.
-class RectangularSliderThumb extends SliderComponentShape {
-  final double width;
-  final double height;
-
-  const RectangularSliderThumb({
-    this.width = 3,
-    this.height = 22,
-  });
-
-  @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
-    return Size(width, height);
-  }
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset center, {
-    required Animation<double> activationAnimation,
-    required Animation<double> enableAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
-    required double value,
-    required double textScaleFactor,
-    required Size sizeWithOverflow,
-  }) {
-    final paint = Paint()
-      ..color = sliderTheme.thumbColor ?? const Color(0xFF087AFF);
-
-    context.canvas.drawRect(
-      Rect.fromCenter(
-        center: center,
-        width: width,
-        height: height,
-      ),
-      paint,
     );
   }
 }
