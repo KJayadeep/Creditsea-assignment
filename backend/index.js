@@ -18,15 +18,28 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : [];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow any localhost port during development (Flutter web picks a random port)
-      if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (!origin) return callback(null, true);
+
+      if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+        return callback(null, true);
       }
+
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -47,7 +60,7 @@ app.use("/api/users", userRoutes);
 app.use('/api/loans', loanRoutes);
 app.use("/api/payments", paymentRoutes);
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, async () => {
     await dbConnect();

@@ -8,9 +8,14 @@ import 'browser_adapter_stub.dart'
 class ApiClient {
   static String? authToken;
 
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:8000/api',
+  );
+
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:8000/api',
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
