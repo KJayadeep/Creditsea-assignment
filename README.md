@@ -18,7 +18,7 @@ An enterprise-grade, full-stack digital lending application featuring end-to-end
 | 🌐 **Live Backend API** | Render Cloud | [https://creditsea-loan-muzs.onrender.com](https://creditsea-loan-muzs.onrender.com) | 🟢 Live |
 | 📡 **API Base URL** | REST Endpoints | [https://creditsea-loan-muzs.onrender.com/api](https://creditsea-loan-muzs.onrender.com/api) | 🟢 Active |
 | 🎬 **App Demo Video** | Video Walkthrough | [Watch CreditSea Demo on Google Drive](https://drive.google.com/file/d/1uwyzQ6oX_Wnbe0c_YqpCB92FBN3_dYel/view?usp=sharing) | 📺 Stream |
-| 📱 **Downloadable Android APK** | Release Build (ARM64 / v7a) | [Download app-release.apk](frontend/build/app/outputs/flutter-apk/app-release.apk) *(54 MB)* | 📦 Ready to Install |
+| 📱 **Downloadable Android APK** | Release Build (ARM64 / v7a) | [Download app-release.apk (Google Drive)](https://drive.google.com/file/d/1PBdHqyyoBKshxjMCQqCTTY9tzPZfbqV9/view?usp=sharing) *(54 MB)* | 📦 Ready to Install |
 
 ---
 
@@ -27,8 +27,7 @@ An enterprise-grade, full-stack digital lending application featuring end-to-end
 | Specification | Value |
 | :--- | :--- |
 | **Package Name** | `com.example.creditsea_app` |
-| **Output File** | `app-release.apk` |
-| **File Location** | [`frontend/build/app/outputs/flutter-apk/app-release.apk`](frontend/build/app/outputs/flutter-apk/app-release.apk) |
+| **Download Link** | [Google Drive APK Download](https://drive.google.com/file/d/1PBdHqyyoBKshxjMCQqCTTY9tzPZfbqV9/view?usp=sharing) |
 | **File Size** | **54.2 MB** |
 | **Build Mode** | Release (Optimized, Tree-shaken, Minified) |
 | **Connected API Endpoint** | `https://creditsea-loan-muzs.onrender.com/api` |
