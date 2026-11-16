@@ -1,10 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../authentication/views/signup_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -21,11 +21,12 @@ class _SplashViewState extends State<SplashView> {
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
 
-      Get.off(
-        () => const SignupView(),
-        transition: Transition.fadeIn,
-        duration: const Duration(milliseconds: 500),
-      );
+      if (Get.isRegistered<StorageService>() &&
+          Get.find<StorageService>().isAuthenticated) {
+        Get.offNamed(AppRoutes.dashboard);
+      } else {
+        Get.offNamed(AppRoutes.signup);
+      }
     });
   }
 
