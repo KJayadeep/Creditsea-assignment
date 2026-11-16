@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
 
+import '../../../core/network/api_client.dart';
+import '../../../core/services/storage_service.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../views/signup_view.dart';
+import '../../dashboard/views/dashboard_view.dart';
 
 class SigninController extends GetxController {
   final formKey = GlobalKey<FormState>();
 
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
+
+  final AuthRepository _authRepository = AuthRepository();
 
   final RxBool hidePassword = true.obs;
   final RxBool isLoading = false.obs;
@@ -36,17 +43,59 @@ class SigninController extends GetxController {
     return null;
   }
 
-  void signIn() {
+  Future<void> signIn() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
 
-    // Backend authentication will be connected later.
-    Get.snackbar(
-      'Demo Sign In',
-      'Login API integration is coming next.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    if (isLoading.value) return;
+
+    try {
+      isLoading.value = true;
+
+      final response = await _authRepository.login(
+        phone: phoneController.text.trim(),
+        password: passwordController.text,
+      );
+
+      final data = response.data;
+      if (data is Map && data['token'] != null) {
+        final token = data['token'].toString();
+        ApiClient.authToken = token;
+        if (Get.isRegistered<StorageService>()) {
+          await Get.find<StorageService>().saveToken(token);
+          await Get.find<StorageService>().savePhone(phoneController.text.trim());
+        }
+      }
+
+      Get.snackbar(
+        'Success',
+        response.data['message'] ?? 'Login successful',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      Get.offAll(
+        () => DashboardView(),
+        transition: Transition.rightToLeft,
+      );
+    } catch (error) {
+      String message = 'Login failed. Please check your credentials.';
+
+      if (error is dio.DioException) {
+        final data = error.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+
+      Get.snackbar(
+        'Login failed',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void forgotPassword() {

@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 
 import '../../../data/repositories/auth_repository.dart';
+import 'password_controller.dart';
+import 'signup_controller.dart';
 import '../views/password_view.dart';
 
 class OtpController extends GetxController {
@@ -20,18 +22,29 @@ class OtpController extends GetxController {
   final RxBool canResend = false.obs;
   final RxBool isVerifying = false.obs;
   final RxBool isResending = false.obs;
+  final RxString _phone = ''.obs;
 
   Timer? _timer;
 
   String get phoneNumber =>
-      Get.arguments?['phone'] ?? '';
+      _phone.value.isNotEmpty ? _phone.value : (Get.arguments?['phone'] ?? '');
 
   String get enteredOtp =>
       otpControllers.map((controller) => controller.text).join();
 
+  void setPhoneNumber(String phone) {
+    _phone.value = phone;
+    clearOtp();
+    startTimer();
+  }
+
   @override
   void onInit() {
     super.onInit();
+    final argsPhone = Get.arguments?['phone'];
+    if (argsPhone != null && argsPhone.toString().isNotEmpty) {
+      _phone.value = argsPhone.toString();
+    }
     startTimer();
   }
 
@@ -71,15 +84,42 @@ class OtpController extends GetxController {
     try {
       isResending.value = true;
 
-      await _authRepository.sendOTP(phoneNumber);
+      final response = await _authRepository.sendOTP(phoneNumber);
+      final data = response.data;
+      final otp = data is Map ? data['otp']?.toString() : null;
 
       clearOtp();
       startTimer();
 
       Get.snackbar(
-        'OTP sent',
-        'A new OTP has been generated.',
-        snackPosition: SnackPosition.BOTTOM,
+        'OTP Sent',
+        otp != null
+            ? 'Your verification code is: $otp'
+            : 'A new OTP has been generated.',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: const Color(0xFF175397),
+        colorText: Colors.white,
+        icon: const Icon(Icons.sms_outlined, color: Colors.white),
+        duration: const Duration(seconds: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: 10,
+        mainButton: otp != null
+            ? TextButton(
+                onPressed: () {
+                  fillOtp(otp);
+                  if (Get.isSnackbarOpen) {
+                    Get.back();
+                  }
+                },
+                child: const Text(
+                  'Auto-fill',
+                  style: TextStyle(
+                    color: Color(0xFF20C9A0),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
       );
     } catch (error) {
       String message = 'Unable to resend OTP.';
@@ -102,12 +142,23 @@ class OtpController extends GetxController {
     }
   }
 
+  void fillOtp(String code) {
+    for (int i = 0; i < otpControllers.length && i < code.length; i++) {
+      otpControllers[i].text = code[i];
+    }
+    if (code.length >= 4 && focusNodes.isNotEmpty) {
+      focusNodes.last.unfocus();
+    }
+  }
+
   void clearOtp() {
     for (final controller in otpControllers) {
       controller.clear();
     }
 
-    focusNodes[0].requestFocus();
+    if (focusNodes.isNotEmpty) {
+      focusNodes[0].requestFocus();
+    }
   }
 
   // Verify OTP through backend
@@ -138,22 +189,31 @@ class OtpController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
 
-      Get.to(
-        () => const PasswordView(),
-        arguments: {
-          'phone': phoneNumber,
-        },
-        transition: Transition.rightToLeft,
-      );
+      if (Get.isRegistered<SignupController>()) {
+        final signupController = Get.find<SignupController>();
+        final passwordController = Get.isRegistered<PasswordController>()
+            ? Get.find<PasswordController>()
+            : Get.put(PasswordController());
+        passwordController.setPhone(phoneNumber);
+        signupController.goToStep(2);
+      } else {
+        Get.to(
+          () => const PasswordView(),
+          arguments: {
+            'phone': phoneNumber,
+          },
+          transition: Transition.rightToLeft,
+        );
+      }
     } catch (error) {
       String message = 'OTP verification failed.';
 
       if (error is dio.DioException) {
-          final data = error.response?.data;
+        final data = error.response?.data;
 
-          if (data is Map && data['message'] != null) {
-            message = data['message'].toString();
-          }
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
       }
 
       Get.snackbar(
@@ -165,6 +225,14 @@ class OtpController extends GetxController {
       clearOtp();
     } finally {
       isVerifying.value = false;
+    }
+  }
+
+  void goBack() {
+    if (Get.isRegistered<SignupController>()) {
+      Get.find<SignupController>().goToStep(0);
+    } else {
+      Get.back();
     }
   }
 

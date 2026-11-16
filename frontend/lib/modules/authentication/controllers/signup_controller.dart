@@ -3,20 +3,33 @@ import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 
 import '../../../data/repositories/auth_repository.dart';
-import '../views/otp_view.dart';
+import 'otp_controller.dart';
 import '../views/signin_view.dart';
 
 class SignupController extends GetxController {
   final phoneController = TextEditingController();
   final formKey = GlobalKey<FormState>();
+  final pageController = PageController();
 
   final AuthRepository _authRepository = AuthRepository();
 
   final RxBool acceptedTerms = true.obs;
   final RxBool isLoading = false.obs;
+  final RxInt currentStep = 0.obs;
 
   void toggleTerms(bool value) {
     acceptedTerms.value = value;
+  }
+
+  void goToStep(int step) {
+    currentStep.value = step;
+    if (pageController.hasClients) {
+      pageController.animateToPage(
+        step,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Future<void> requestOtp() async {
@@ -41,31 +54,58 @@ class SignupController extends GetxController {
       isLoading.value = true;
 
       final response = await _authRepository.sendOTP(phone);
+      final data = response.data;
+      final otp = data is Map ? data['otp']?.toString() : null;
+
+      final otpController = Get.isRegistered<OtpController>()
+          ? Get.find<OtpController>()
+          : Get.put(OtpController());
+      otpController.setPhoneNumber(phone);
+
+      goToStep(1);
 
       Get.snackbar(
-        'OTP sent',
-        response.data['message'] ?? 'OTP sent successfully',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-
-      Get.to(
-        () => const OtpView(),
-        arguments: {
-          'phone': phone,
-        },
-        transition: Transition.rightToLeft,
+        'OTP Sent',
+        otp != null
+            ? 'Your verification code is: $otp'
+            : (data is Map && data['message'] != null
+                ? data['message'].toString()
+                : 'OTP sent successfully'),
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: const Color(0xFF175397),
+        colorText: Colors.white,
+        icon: const Icon(Icons.sms_outlined, color: Colors.white),
+        duration: const Duration(seconds: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: 10,
+        mainButton: otp != null
+            ? TextButton(
+                onPressed: () {
+                  otpController.fillOtp(otp);
+                  if (Get.isSnackbarOpen) {
+                    Get.back();
+                  }
+                },
+                child: const Text(
+                  'Auto-fill',
+                  style: TextStyle(
+                    color: Color(0xFF20C9A0),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
       );
     } catch (error) {
       String message = 'Unable to send OTP. Please try again.';
 
-      // Extract backend error messag
-          if (error is dio.DioException) {
-      final data = error.response?.data;
+      if (error is dio.DioException) {
+        final data = error.response?.data;
 
-      if (data is Map && data['message'] != null) {
-        message = data['message'].toString();
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
       }
-    }
 
       Get.snackbar(
         'OTP failed',
@@ -86,6 +126,7 @@ class SignupController extends GetxController {
 
   @override
   void onClose() {
+    pageController.dispose();
     phoneController.dispose();
     super.onClose();
   }

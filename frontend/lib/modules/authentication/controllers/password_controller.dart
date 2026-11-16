@@ -1,9 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 
+import '../../../core/network/api_client.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../data/repositories/auth_repository.dart';
+import 'signup_controller.dart';
 import '../views/form_view.dart';
 
 class PasswordController extends GetxController {
@@ -17,6 +19,23 @@ class PasswordController extends GetxController {
   final RxBool hidePassword = true.obs;
   final RxBool hideConfirmPassword = true.obs;
   final RxBool isLoading = false.obs;
+  final RxString _phone = ''.obs;
+
+  String get phoneNumber =>
+      _phone.value.isNotEmpty ? _phone.value : (Get.arguments?['phone'] ?? '');
+
+  void setPhone(String p) {
+    _phone.value = p;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    final argsPhone = Get.arguments?['phone'];
+    if (argsPhone != null && argsPhone.toString().isNotEmpty) {
+      _phone.value = argsPhone.toString();
+    }
+  }
 
   void togglePasswordVisibility() {
     hidePassword.toggle();
@@ -65,8 +84,19 @@ class PasswordController extends GetxController {
       isLoading.value = true;
 
       final response = await _authRepository.register(
+        phone: phoneNumber,
         password: passwordController.text,
       );
+
+      final data = response.data;
+      if (data is Map && data['token'] != null) {
+        final token = data['token'].toString();
+        ApiClient.authToken = token;
+        if (Get.isRegistered<StorageService>()) {
+          await Get.find<StorageService>().saveToken(token);
+          await Get.find<StorageService>().savePhone(phoneNumber);
+        }
+      }
 
       Get.snackbar(
         'Success',
@@ -99,6 +129,14 @@ class PasswordController extends GetxController {
 
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void goBack() {
+    if (Get.isRegistered<SignupController>()) {
+      Get.find<SignupController>().goToStep(1);
+    } else {
+      Get.back();
     }
   }
 
