@@ -33,7 +33,7 @@ const userSchema = mongoose.Schema(
         },
         maritalStatus:{
             type: String,
-            enum: ["Single", "Married", "Divorced", "Widowed"],
+            enum: ["Single", "Married", "Divorced", "Widowed", "Other"],
             default: null
         },
         email:{
@@ -48,10 +48,20 @@ const userSchema = mongoose.Schema(
         },
         panNumber:{
             type: String,
+            uppercase: true,
             trim: true,
-            default: ""
+            sparse: true
         },
         panVerified:{
+            type: Boolean,
+            default: false
+        },
+        aadhaarNumber:{
+            type: String,
+            trim: true,
+            sparse: true
+        },
+        aadhaarVerified:{
             type: Boolean,
             default: false
         }

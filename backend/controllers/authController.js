@@ -1,9 +1,9 @@
-import bycrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 import OTP from '../models/otpModel.js';
 import User from '../models/userModel.js';
 import { generateOTP } from '../utils/otpGenerator.js';
-import { generateOTPToken } from '../utils/generateToken.js';
+import { generateAccessToken, generateOTPToken } from '../utils/generateToken.js';
 
 export const sendOTP = async (req, res) => {
     const { phone} = req.body;
@@ -23,8 +23,8 @@ export const sendOTP = async (req, res) => {
         }
         const otp = generateOTP(4);
         console.log(`Generated OTP for ${phone}: ${otp}`);
-        const salt = await bycrypt.genSalt(10);
-        const hashedOTP = await bycrypt.hash(otp, salt);
+        const salt = await bcrypt.genSalt(10);
+        const hashedOTP = await bcrypt.hash(otp, salt);
 
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -34,7 +34,11 @@ export const sendOTP = async (req, res) => {
             { upsert: true, new: true, setDefaultsOnInsert: true}
         );
 
-        res.status(200).json({ message: 'OTP sent successfully' });
+
+        res.status(200).json({
+            message: 'OTP sent successfully',
+            otp: otp
+        });
     } catch (error) {
         console.error('Error sending OTP:', error);
         res.status(500).json({ message: 'Failed to send OTP' });
@@ -65,7 +69,7 @@ export const verifyOTP = async (req, res) => {
             });
         }
 
-        const isMatch = await bycrypt.compare(otp, otpDoc.otpHash);
+        const isMatch = await bcrypt.compare(otp, otpDoc.otpHash);
 
         if (!isMatch) {
             otpDoc.attempts += 1;
@@ -148,6 +152,7 @@ export const registerUser = async (req, res) => {
 
         return res.status(201).json({
             message: 'Account created successfully',
+            token: accessToken,
             user: {
                 id: user._id,
                 phone: user.phone
@@ -200,6 +205,7 @@ export const loginUser = async (req, res) => {
 
         return res.status(200).json({
             message: 'Login successful',
+            token: accessToken,
             user: {
                 id: user._id,
                 phone: user.phone
